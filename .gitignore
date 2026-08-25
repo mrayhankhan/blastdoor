@@ -7,3 +7,6 @@ dist/
 .trueforge/
 data/*.sqlite
 coverage/
+
+# local dev helper, not part of the product
+.demo-seed.ts
