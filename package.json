@@ -1,0 +1,23 @@
+{
+  "name": "blastdoor",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The approval gate that tells you what you are about to break. An incident-response agent on TrueForge that computes blast radius before any irreversible action.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "stack": "npm run start -w @blastdoor/target-stack",
+    "console": "npm run start -w @blastdoor/console",
+    "mcp": "npm run start -w @blastdoor/ops-mcp",
+    "harness": "npx -y @truefoundry/trueforge",
+    "demo": "node scripts/demo.mjs",
+    "test": "node --test packages/*/test/*.test.mjs"
+  }
+}

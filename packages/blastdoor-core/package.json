@@ -1,0 +1,14 @@
+{
+  "name": "@blastdoor/core",
+  "version": "0.1.0",
+  "description": "Blast-radius engine: computes what a destructive operation will break, whether it can be undone, and how much the evidence actually supports it.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "node --test test/"
+  }
+}
