@@ -40,6 +40,12 @@ const routes: Record<string, Handler> = {
 
   'GET /api/actions': () => ({ actions: world.actionLog }),
 
+  // The endpoint the agent's sandbox code calls to turn a correlation into a cause.
+  'POST /api/replay': (_url, body) => {
+    const { service, deployId, requestShape } = body as Record<string, string>;
+    return world.replay(service, deployId, requestShape ?? 'recorded failing request');
+  },
+
   'POST /api/execute': (_url, body) => {
     const { tool, args } = body as { tool: string; args: Record<string, unknown> };
     const result = world.execute(tool, args ?? {});

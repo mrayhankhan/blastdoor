@@ -316,6 +316,22 @@ export function scoreConfidence(evidence: Evidence[]): Confidence {
     );
   }
 
+  // Independent investigators reaching the same conclusion is worth more than one
+  // investigator saying it repeatedly, because the failure mode of a single line of
+  // enquiry is that it never considers the hypothesis that would have falsified it.
+  // This only pays out when the delegation was real: two subagents whose findings agree.
+  const investigators = new Set(evidence.map((e) => e.investigator).filter(Boolean));
+  if (investigators.size >= 2) {
+    score += 9;
+    basis.push(
+      `Reached independently by ${investigators.size} investigators (${[...investigators].join(', ')}).`,
+    );
+  } else if (investigators.size === 1 && evidence.length > 2) {
+    gaps.push(
+      `A single investigator (${[...investigators][0]}) produced the whole case. No independent line of enquiry checked it.`,
+    );
+  }
+
   if (evidence.length === 0) {
     gaps.push('No evidence was gathered at all.');
   }

@@ -78,6 +78,12 @@ export interface Evidence {
    * which is the most common and most misleading kind of incident evidence.
    */
   strength: 'causal' | 'correlational' | 'circumstantial';
+  /**
+   * Which subagent produced this, when the work was delegated. Corroboration from
+   * independent investigators is worth more than the same claim restated, and the
+   * operator can only weigh that if they can see who found what.
+   */
+  investigator?: string;
   observedAt: string;
 }
 

@@ -134,3 +134,79 @@ test('an unmodelled tool is treated as irreversible rather than assumed safe', (
   assert.equal(report.reversibility, 'irreversible');
   assert.equal(report.undo.possible, false);
 });
+
+test('independent investigators raise confidence; a lone one is named as a gap', () => {
+  const solo = scoreConfidence([
+    { ...causal('e1'), investigator: 'deploy-hypothesis' },
+    { ...correlational('e2'), investigator: 'deploy-hypothesis' },
+    { ...correlational('e3', 'logs'), investigator: 'deploy-hypothesis' },
+  ]);
+  const corroborated = scoreConfidence([
+    { ...causal('e1'), investigator: 'deploy-hypothesis' },
+    { ...correlational('e2'), investigator: 'deploy-hypothesis' },
+    { ...correlational('e3', 'logs'), investigator: 'dependency-hypothesis' },
+  ]);
+
+  assert.ok(corroborated.score > solo.score, 'corroboration across investigators should score higher');
+  assert.ok(solo.gaps.some((g) => /single investigator/i.test(g)));
+  assert.ok(corroborated.basis.some((b) => /independently by 2 investigators/i.test(b)));
+});
+
+test('replay evidence from the sandbox counts as causal', () => {
+  const report = computeBlastRadius(
+    proposal({
+      args: { service: 'checkout-api', deployId: 'dep-9f12' },
+      evidence: [
+        { ...causal('e1'), source: 'sandbox-replay', claim: 'Fails on dep-9f12, passes on dep-8e01.' },
+        { ...correlational('e2'), investigator: 'deploy-hypothesis' },
+        { ...correlational('e3', 'traces'), investigator: 'dependency-hypothesis' },
+      ],
+    }),
+    freshState(),
+  );
+
+  // The property that matters is not a particular number, it is that a sandbox replay
+  // moves a proposal from "this is a guess" to "this is actionable". Compare against the
+  // same case with the replay downgraded to correlational.
+  const withoutReplay = computeBlastRadius(
+    proposal({
+      args: { service: 'checkout-api', deployId: 'dep-9f12' },
+      evidence: [
+        { ...correlational('e1', 'sandbox-replay'), claim: 'Fails on dep-9f12.' },
+        { ...correlational('e2'), investigator: 'deploy-hypothesis' },
+        { ...correlational('e3', 'traces'), investigator: 'dependency-hypothesis' },
+      ],
+    }),
+    freshState(),
+  );
+
+  assert.notEqual(report.recommendation, 'reject');
+  assert.ok(
+    report.confidence.score - withoutReplay.confidence.score >= 15,
+    `replay should move confidence materially (${withoutReplay.confidence.score} -> ${report.confidence.score})`,
+  );
+});
+
+test('the bar for irreversible actions is higher than for reversible ones', () => {
+  // Identical evidence, different targets. dep-9f12 rolls back cleanly; dep-4c21 crosses
+  // a schema migration. The same case should clear one bar and not the other — this is
+  // the property that makes reversibility worth modelling at all.
+  const evidence = [
+    { ...correlational('e1'), investigator: 'deploy-hypothesis' },
+    { ...correlational('e2', 'metrics'), investigator: 'deploy-hypothesis' },
+    { ...correlational('e3', 'logs'), investigator: 'dependency-hypothesis' },
+  ];
+
+  const reversible = computeBlastRadius(
+    proposal({ args: { service: 'checkout-api', deployId: 'dep-9f12' }, evidence }),
+    freshState(),
+  );
+  const irreversible = computeBlastRadius(
+    proposal({ args: { service: 'payments-svc', deployId: 'dep-4c21' }, evidence }),
+    freshState(),
+  );
+
+  assert.equal(reversible.confidence.score, irreversible.confidence.score);
+  assert.notEqual(reversible.recommendation, 'reject');
+  assert.equal(irreversible.recommendation, 'reject');
+});

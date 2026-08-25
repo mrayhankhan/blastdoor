@@ -33,23 +33,49 @@ Usually you cannot know that from observation alone, which is what the sandbox i
 
 ## Use the sandbox to actually check
 
-When a hypothesis is testable, test it rather than asserting it. Useful shapes:
+Call `get_replay_kit` first. It returns the replay endpoint, its contract, and the deploy
+list. Then write your own script and run it in the sandbox — this is the step that converts
+a correlation into causal evidence, and it is the only way to get there.
 
-- **Replay** the failing request shape against the previous version and see whether it
-  succeeds. A pass here is strong causal evidence.
-- **Bisect** across the last several deploys when there is more than one candidate.
-- **Check the correlation holds outside the window** — pull a longer metric range and see
-  whether the same pattern appears around earlier deploys of the same kind. If it does, the
-  deploy is probably not the cause.
+The comparison that matters is **the same request shape against the suspect deploy and
+against its predecessor**:
 
-Write real code and run it. A sandbox result is evidence; a plausible argument is not.
+```js
+const replay = (service, deployId, requestShape) =>
+  fetch(`${STACK}/api/replay`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ service, deployId, requestShape }),
+  }).then((r) => r.json());
+
+const suspect = await replay('checkout-api', 'dep-9f12', 'guest checkout');
+const baseline = await replay('checkout-api', 'dep-8e01', 'guest checkout');
+// fail then pass is causal. fail then fail means you have the wrong deploy.
+```
+
+Replaying only the suspect proves nothing — without a baseline you cannot tell a broken
+deploy from a broken request. A fail-then-pass pair is causal evidence and should be
+submitted with `strength: "causal"` and `source: "sandbox-replay"`. A fail-then-fail pair is
+just as valuable: it eliminates your leading hypothesis, and reporting that honestly is
+better than quietly moving on to the next one.
+
+Bisect the same way when several deploys are candidates.
 
 ## Delegate competing hypotheses
 
 If there are several plausible causes, give each to a subagent and let them work
-independently. Independent investigation is more useful than sequential investigation because
-subagents that reach the same conclusion by different routes give you corroboration, and
-subagents that disagree tell you the picture is not yet clear enough to act on.
+independently. Sequential investigation tends to confirm whatever you looked at first;
+parallel investigation does not, because the subagents cannot see each other's reasoning.
+
+Name each one for the hypothesis it is testing — `deploy-hypothesis`,
+`dependency-hypothesis`, `capacity-hypothesis` — and pass that name as the `investigator`
+field on every piece of evidence it produced. This is not bookkeeping: Blastdoor scores
+corroboration from independent investigators higher than the same claim restated, and names
+a single investigator carrying the whole case as a gap. If you delegate but do not attribute,
+you lose the credit for having done it.
+
+Subagents that disagree are the most useful outcome. It means the picture is not yet clear
+enough to act on, and that is worth reporting rather than resolving by picking a favourite.
 
 ## Know when not to act
 

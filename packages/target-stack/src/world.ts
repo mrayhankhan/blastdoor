@@ -203,6 +203,63 @@ export class World {
     }));
   }
 
+  /**
+   * Replay a recorded request shape against a specific deploy of a service.
+   *
+   * This is what turns a correlation into a cause. Observing that an error rate rose
+   * after a deploy is timing; showing that the same request fails on the new version and
+   * succeeds on the old one is evidence. The agent cannot get that from reading metrics —
+   * it has to write code that actually runs the comparison, which is what the sandbox is
+   * for.
+   *
+   * Deterministic by construction: the outcome depends only on whether the deploy under
+   * test introduced an active fault.
+   */
+  replay(service: string, deployId: string, requestShape: string): {
+    service: string;
+    deployId: string;
+    requestShape: string;
+    outcome: 'pass' | 'fail';
+    latencyMs: number;
+    detail: string;
+  } {
+    const deploy = this.deploys.find((d) => d.id === deployId);
+    if (!deploy) {
+      return {
+        service,
+        deployId,
+        requestShape,
+        outcome: 'fail',
+        latencyMs: 0,
+        detail: `Unknown deploy ${deployId} — nothing to replay against.`,
+      };
+    }
+
+    const fault = this.activeFaults.find(
+      (f) => f.service === service && f.introducedByDeploy === deployId,
+    );
+
+    if (fault) {
+      return {
+        service,
+        deployId,
+        requestShape,
+        outcome: 'fail',
+        latencyMs: fault.p99LatencyMs,
+        detail: `Reproduced on ${deployId}: ${fault.kind}. ${fault.description}`,
+      };
+    }
+
+    return {
+      service,
+      deployId,
+      requestShape,
+      outcome: 'pass',
+      latencyMs: 118,
+      detail: `${requestShape} completed normally on ${deployId}.`,
+    };
+  }
+
   record(entry: Omit<ActionRecord, 'id' | 'at'>): ActionRecord {
     const rec: ActionRecord = {
       id: `act-${(this.actionLog.length + 1).toString().padStart(3, '0')}`,

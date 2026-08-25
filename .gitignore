@@ -13,3 +13,6 @@ coverage/
 
 .vercel-static/
 .vercel/
+
+.vercel
+.env*

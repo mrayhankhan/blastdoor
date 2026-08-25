@@ -48,16 +48,25 @@ const evidenceSchema = z
         .describe(
           'causal = directly links the change to the symptom. correlational = they happened near each other in time. Be honest here; overstating is how bad rollbacks get approved.',
         ),
+      investigator: z
+        .string()
+        .optional()
+        .describe(
+          'Which subagent found this, if you delegated. Naming it lets the operator see whether independent lines of enquiry agreed or a single one carried the whole case.',
+        ),
     }),
   )
   .describe('Everything you actually observed that supports this action.');
 
-function toEvidence(raw: Array<{ source: string; claim: string; strength: Evidence['strength'] }>): Evidence[] {
+function toEvidence(
+  raw: Array<{ source: string; claim: string; strength: Evidence['strength']; investigator?: string }>,
+): Evidence[] {
   return raw.map((e, i) => ({
     id: `e${i + 1}`,
     source: e.source,
     claim: e.claim,
     strength: e.strength,
+    investigator: e.investigator,
     observedAt: new Date().toISOString(),
   }));
 }
@@ -117,6 +126,33 @@ server.tool(
   'Every action attempted against the estate in this session, including ones that were blocked.',
   {},
   async () => text(await stack('/api/actions')),
+);
+
+server.tool(
+  'get_replay_kit',
+  'What you need to test a hypothesis in the sandbox: the replay endpoint, its contract, and the request shapes worth replaying. Use this before writing bisect or replay code — it is how a correlation becomes causal evidence.',
+  {},
+  async () => {
+    const deploys = await stack('/api/deploys');
+    return text({
+      endpoint: `${STACK}/api/replay`,
+      method: 'POST',
+      body: { service: 'string', deployId: 'string', requestShape: 'string' },
+      returns: { outcome: "'pass' | 'fail'", latencyMs: 'number', detail: 'string' },
+      deploys: deploys.deploys.map((d: any) => ({
+        id: d.id,
+        service: d.service,
+        deployedAt: d.deployedAt,
+        summary: d.summary,
+        previousDeployId: d.previousDeployId,
+      })),
+      guidance:
+        'Write your own script and run it in the sandbox. The comparison that matters is the same request ' +
+        'shape against the suspect deploy and against its predecessor: a fail-then-pass pair is causal evidence ' +
+        'and should be submitted with strength "causal". Replaying only the suspect deploy proves nothing, ' +
+        'because you have no baseline to compare it to.',
+    });
+  },
 );
 
 // ---------------------------------------------------------------------------
