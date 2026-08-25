@@ -20,5 +20,8 @@
     "demo": "node scripts/demo.ts",
     "e2e": "node scripts/e2e.ts",
     "test": "node --test packages/blastdoor-core/test/engine.test.ts"
+  },
+  "dependencies": {
+    "three": "^0.185.1"
   }
 }

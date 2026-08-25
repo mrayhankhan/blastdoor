@@ -5,8 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Blastdoor Console</title>
     <link rel="stylesheet" href="./app.css" />
+    <script type="importmap">
+      { "imports": { "three": "/vendor/three.module.js" } }
+    </script>
   </head>
-  <body>
+  <body data-live="false">
+    <div id="stage" aria-hidden="true"></div>
+    <div class="grain" aria-hidden="true"></div>
+
     <header class="topbar">
       <div class="brand">
         <span class="brand-mark" aria-hidden="true"></span>
@@ -16,21 +22,51 @@
         </div>
       </div>
       <div class="topbar-status">
-        <span id="conn" class="pill pill-idle">connecting</span>
+        <span id="conn" class="pill">connecting</span>
         <span id="count" class="counter">0 pending</span>
       </div>
     </header>
 
-    <main id="main">
+    <main id="panel">
       <section id="empty" class="empty">
+        <div class="empty-ring" aria-hidden="true"></div>
         <h2>Nothing waiting</h2>
         <p>
-          When the agent proposes something it cannot undo, it appears here with a full
-          blast-radius report before anyone can approve it.
+          When the agent proposes something it cannot undo, it appears here with the full
+          blast radius before anyone can approve it.
         </p>
       </section>
-      <div id="list" class="list"></div>
+      <div id="list"></div>
     </main>
+
+    <div class="graph-hud">
+      <div class="legend">
+        <h4>Blast severity</h4>
+        <div class="legend-item">
+          <span class="legend-swatch" style="background: var(--critical)"></span>
+          Unavailable <span class="glyph">DOWN</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-swatch" style="background: var(--serious)"></span>
+          Degraded <span class="glyph">DEGR</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-swatch" style="background: var(--warning)"></span>
+          Elevated latency <span class="glyph">SLOW</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-swatch" style="background: var(--line-bright)"></span>
+          Unaffected <span class="glyph">—</span>
+        </div>
+      </div>
+      <div class="graph-controls">
+        <button id="replay" type="button">Replay wave</button>
+        <button id="reset-view" type="button">Reset view</button>
+      </div>
+      <p class="hint">Drag to orbit · scroll to zoom · click a node</p>
+    </div>
+
+    <div id="tooltip" role="status" aria-live="polite"></div>
 
     <script type="module" src="./app.js"></script>
   </body>
