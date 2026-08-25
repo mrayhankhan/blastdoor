@@ -8,10 +8,19 @@
  * same as no approval at all.
  */
 import { BlastGraph } from './graph.js';
+import { DEMO_PROPOSALS, DEMO_TOPOLOGY } from './demo-data.js';
 
 const BROKER = window.BLASTDOOR_BROKER ?? 'http://localhost:4200';
 const STACK = window.BLASTDOOR_STACK ?? 'http://localhost:4000';
 const POLL_MS = 1500;
+
+/**
+ * Demo mode. The full system is three processes and none of them exist on static
+ * hosting, so the public deployment falls back to a captured proposal instead of showing
+ * an error. It is labelled wherever it appears — a safety tool that quietly presented
+ * fabricated state as live would be precisely the wrong thing to ship.
+ */
+let demoMode = false;
 /** How long an irreversible action must be held before it commits. */
 const HOLD_MS = 1600;
 
@@ -101,9 +110,7 @@ document.getElementById('reset-view').addEventListener('click', () => {
 fetch(`${STACK}/api/topology`)
   .then((r) => r.json())
   .then((t) => graph.setTopology(t.services))
-  .catch(() => {
-    /* The panel still works without the scene; the stack may not be running yet. */
-  });
+  .catch(() => graph.setTopology(DEMO_TOPOLOGY));
 
 // ── rendering helpers ───────────────────────────────────────────────────────
 
@@ -508,6 +515,23 @@ function renderCard(p) {
 // ── data flow ───────────────────────────────────────────────────────────────
 
 async function decide(proposalId, action, note) {
+  // In demo mode the decision is resolved locally so the hold-to-confirm interaction is
+  // still explorable on the public deployment. Nothing is executed, and the issued token
+  // is obviously fake.
+  if (demoMode) {
+    const proposal = DEMO_PROPOSALS.find((p) => p.id === proposalId);
+    if (proposal) {
+      proposal.status = action === 'approve' ? 'approved' : 'denied';
+      proposal.decidedBy = 'you (demo)';
+      proposal.decisionNote = note || null;
+      if (action === 'approve') issuedTokens.set(proposalId, 'tok_demo_not_a_real_approval_token');
+    }
+    noteDrafts.delete(proposalId);
+    lastSignature = '';
+    await refresh();
+    return;
+  }
+
   try {
     const res = await fetch(`${BROKER}/api/${action}`, {
       method: 'POST',
@@ -529,12 +553,16 @@ async function refresh() {
   try {
     const res = await fetch(`${BROKER}/api/proposals`);
     proposals = (await res.json()).proposals ?? [];
+    demoMode = false;
     connEl.textContent = 'live';
     connEl.className = 'pill pill-live';
   } catch {
-    connEl.textContent = 'broker offline';
-    connEl.className = 'pill pill-down';
-    return;
+    // No broker reachable. On the public deployment that is expected, so show the
+    // captured proposal rather than an empty screen — but never claim it is live.
+    demoMode = true;
+    proposals = DEMO_PROPOSALS;
+    connEl.textContent = 'demo — no live broker';
+    connEl.className = 'pill pill-demo';
   }
 
   const pending = proposals.filter((p) => p.status === 'pending').length;

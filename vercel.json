@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "node scripts/build-static.ts",
+  "outputDirectory": ".vercel-static",
+  "installCommand": "npm install",
+  "framework": null,
+  "headers": [
+    {
+      "source": "/vendor/(.*)",
+      "headers": [{ "key": "cache-control", "value": "public, max-age=31536000, immutable" }]
+    }
+  ]
+}

@@ -182,6 +182,9 @@ body[data-live="true"] .brand-mark::after { transform: translateX(62%); }
 .pill-live { color: var(--good); border-color: color-mix(in srgb, var(--good) 45%, transparent); }
 .pill-live::before { animation: pulse 2s var(--ease-in-out) infinite; }
 .pill-down { color: var(--critical); border-color: color-mix(in srgb, var(--critical) 45%, transparent); }
+/* Demo mode must never be mistakeable for live state, so it gets its own colour and
+   says so in words rather than relying on the absence of the "live" indicator. */
+.pill-demo { color: var(--warning); border-color: color-mix(in srgb, var(--warning) 45%, transparent); }
 
 @keyframes pulse {
   0%, 100% { opacity: 1; box-shadow: 0 0 0 0 currentColor; }

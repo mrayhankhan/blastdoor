@@ -1,0 +1,27 @@
+{
+  "name": "Blastdoor",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:22-bookworm",
+
+  // TrueForge 0.1.4 does not start on Windows (upstream issue #427), and its local
+  // sandbox provider supports macOS and Linux only. Running the whole stack in a Linux
+  // container sidesteps both, and gives the sandbox somewhere real to execute.
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
+
+  "forwardPorts": [4000, 4100, 4200, 8790],
+  "portsAttributes": {
+    "4000": { "label": "target-stack", "onAutoForward": "silent" },
+    "4100": { "label": "Blastdoor console", "onAutoForward": "openPreview" },
+    "4200": { "label": "approval broker", "onAutoForward": "silent" },
+    "8790": { "label": "TrueForge harness", "onAutoForward": "notify" }
+  },
+
+  "postCreateCommand": "npm install",
+
+  "customizations": {
+    "vscode": {
+      "extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode"]
+    }
+  }
+}
