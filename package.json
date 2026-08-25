@@ -17,7 +17,8 @@
     "console": "npm run start -w @blastdoor/console",
     "mcp": "npm run start -w @blastdoor/ops-mcp",
     "harness": "npx -y @truefoundry/trueforge",
-    "demo": "node scripts/demo.mjs",
-    "test": "node --test packages/*/test/*.test.mjs"
+    "demo": "node scripts/demo.ts",
+    "e2e": "node scripts/e2e.ts",
+    "test": "node --test packages/blastdoor-core/test/engine.test.ts"
   }
 }

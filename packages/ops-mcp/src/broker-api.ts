@@ -83,6 +83,26 @@ export function startBrokerApi(port = Number(process.env.BROKER_PORT ?? 4200)): 
     });
   });
 
+  // If the port is taken there is almost certainly a stale broker still running, and
+  // carrying on regardless would be worse than failing. The agent would create proposals
+  // in this process while the operator approved them in the other one's console — the
+  // approvals would never match, and the operator would believe they had authorised
+  // something that had not been authorised at all. That confusion is exactly what this
+  // project exists to prevent, so refuse to start and say why.
+  server.on('error', (err: NodeJS.ErrnoException) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(
+        `[broker-api] FATAL: port ${port} is already in use.\n` +
+          `  Another Blastdoor broker is running. Two brokers means the agent and the console\n` +
+          `  would be looking at different sets of proposals, so this process will not start.\n` +
+          `  Stop the other instance, or set BROKER_PORT to a free port on both sides.`,
+      );
+    } else {
+      console.error(`[broker-api] FATAL: ${err.message}`);
+    }
+    process.exit(1);
+  });
+
   server.listen(port, () => {
     console.error(`[broker-api] listening on http://localhost:${port}`);
   });
