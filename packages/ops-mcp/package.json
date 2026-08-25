@@ -1,0 +1,14 @@
+{
+  "name": "@blastdoor/ops-mcp",
+  "version": "0.1.0",
+  "description": "MCP server exposing the ops estate to the agent: read-only tools it may call freely, destructive tools it cannot execute without a human-issued approval token.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^3.25.0"
+  }
+}
