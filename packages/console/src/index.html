@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Blastdoor Console</title>
+    <link rel="stylesheet" href="./app.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <div>
+          <h1>Blastdoor</h1>
+          <p>Approval gate for irreversible operations</p>
+        </div>
+      </div>
+      <div class="topbar-status">
+        <span id="conn" class="pill pill-idle">connecting</span>
+        <span id="count" class="counter">0 pending</span>
+      </div>
+    </header>
+
+    <main id="main">
+      <section id="empty" class="empty">
+        <h2>Nothing waiting</h2>
+        <p>
+          When the agent proposes something it cannot undo, it appears here with a full
+          blast-radius report before anyone can approve it.
+        </p>
+      </section>
+      <div id="list" class="list"></div>
+    </main>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
