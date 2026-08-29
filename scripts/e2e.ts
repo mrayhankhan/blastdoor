@@ -14,8 +14,14 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 
-const BROKER = 'http://localhost:4200';
-const STACK = 'http://localhost:4000';
+// The suite spawns its own MCP server, which brings up its own broker. Using the default
+// port would collide with a `npm run mcp` already running in another terminal — which is
+// exactly what the README tells you to do — so the suite runs on its own ports and can
+// coexist with a live stack. It deliberately shares the target stack, because asserting
+// that the symptom actually clears means acting on the real one.
+const BROKER_PORT = process.env.E2E_BROKER_PORT ?? '4210';
+const BROKER = `http://localhost:${BROKER_PORT}`;
+const STACK = process.env.TARGET_STACK_URL ?? 'http://localhost:4000';
 
 const ok = (label: string) => console.log(`  PASS  ${label}`);
 const fail = (label: string, detail?: unknown) => {
@@ -36,6 +42,7 @@ function parse(result: any): any {
 const transport = new StdioClientTransport({
   command: 'node',
   args: ['packages/ops-mcp/src/stdio.ts'],
+  env: { ...process.env, BROKER_PORT, TARGET_STACK_URL: STACK },
 });
 const client = new Client({ name: 'blastdoor-e2e', version: '0.1.0' });
 await client.connect(transport);
