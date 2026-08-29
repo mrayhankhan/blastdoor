@@ -120,16 +120,36 @@ node scripts/e2e.ts
 ### Wiring it to TrueForge
 
 ```bash
-npm run harness    # npx @truefoundry/trueforge → http://localhost:8790
+npm run harness      # npx @truefoundry/trueforge → http://localhost:8790
 ```
 
-1. **Settings → Models** — add a provider key.
-2. **Settings → Connectors** — add an MCP server, command `node`, args
-   `packages/ops-mcp/src/server.ts`.
-3. **Skills** — mount `agent/skills/incident-response` and `agent/skills/blast-radius`.
-4. **Sandbox** — enable a sandbox provider so the agent can run its bisect code.
-5. **Agent** — paste [`agent/AGENT.md`](agent/AGENT.md) into the instructions, enable the
-   connector, skills, subagents, and sandbox, and save.
+Add a model provider key in **Settings → Models** — that is the one step that cannot be
+scripted, because the key is yours and a provisioning script is the wrong place for a
+secret. Then:
+
+```bash
+npm run provision
+```
+
+```
+  OK    MCP server "blastdoor-ops" (created)
+  OK    skill "incident-response" (created)
+  OK    skill "blast-radius" (created)
+  OK    agent "blastdoor-responder" (created)
+```
+
+[`scripts/provision.ts`](scripts/provision.ts) registers the connector, mounts both skills
+from this repo, and creates the agent with the sandbox, subagents, and approval policy it
+is meant to run with. It is idempotent, so re-running after adding the key is safe.
+Clicking through Settings does the same thing, but it is not reproducible and you cannot
+read it — which is why this is a script.
+
+> **Windows:** TrueForge 0.1.4 does not start on Windows —
+> [truefoundry/trueforge#427](https://github.com/truefoundry/trueforge/issues/427). Its
+> migration provider `import()`s a raw `C:\…` path and Node's ESM loader rejects it. The
+> one-line fix is in [`patches/`](patches/); apply it with `npm run patch:trueforge`, or
+> run the whole stack in the bundled devcontainer instead. The local sandbox provider is
+> also macOS/Linux-only, so the sandbox needs either Linux or a Daytona key.
 
 Then inject a fault and give it the alert:
 

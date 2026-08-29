@@ -16,11 +16,13 @@
     "stack": "npm run start -w @blastdoor/target-stack",
     "console": "npm run start -w @blastdoor/console",
     "mcp": "npm run start -w @blastdoor/ops-mcp",
-    "harness": "npx -y @truefoundry/trueforge",
+    "harness": "node scripts/patch-trueforge.ts && npx -y @truefoundry/trueforge",
     "demo": "node scripts/demo.ts",
     "e2e": "node scripts/e2e.ts",
     "test": "node --test packages/blastdoor-core/test/engine.test.ts",
-    "provision": "node scripts/provision.ts"
+    "provision": "node scripts/provision.ts",
+    "patch:trueforge": "node scripts/patch-trueforge.ts",
+    "demo:drive": "node scripts/demo-drive.ts"
   },
   "dependencies": {
     "three": "^0.185.1"
