@@ -5,7 +5,8 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "start": "node src/server.ts"
+    "start": "node src/http.ts",
+    "stdio": "node src/stdio.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",

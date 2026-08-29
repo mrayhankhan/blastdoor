@@ -17,14 +17,12 @@
  *   node packages/ops-mcp/src/server.ts        # stdio transport
  */
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 
 import { computeBlastRadius } from '../../blastdoor-core/src/engine.ts';
 import { renderApprovalCard } from '../../blastdoor-core/src/render.ts';
 import type { ActionProposal, Evidence } from '../../blastdoor-core/src/types.ts';
 import { broker } from './broker.ts';
-import { startBrokerApi } from './broker-api.ts';
 
 const STACK = process.env.TARGET_STACK_URL ?? 'http://localhost:4000';
 
@@ -71,7 +69,8 @@ function toEvidence(
   }));
 }
 
-const server = new McpServer({ name: 'blastdoor-ops', version: '0.1.0' });
+export function buildServer(): McpServer {
+  const server = new McpServer({ name: 'blastdoor-ops', version: '0.1.0' });
 
 // ---------------------------------------------------------------------------
 // Read-only tools. Safe to call, safe to call repeatedly.
@@ -265,12 +264,12 @@ server.tool(
   },
 );
 
+  return server;
+}
+
 function text(payload: unknown) {
   return { content: [{ type: 'text' as const, text: typeof payload === 'string' ? payload : JSON.stringify(payload, null, 2) }] };
 }
 
-startBrokerApi();
 
-const transport = new StdioServerTransport();
-await server.connect(transport);
-console.error('[ops-mcp] connected over stdio; target stack at ' + STACK);
+export { STACK };

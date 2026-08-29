@@ -35,7 +35,7 @@ function parse(result: any): any {
 
 const transport = new StdioClientTransport({
   command: 'node',
-  args: ['packages/ops-mcp/src/server.ts'],
+  args: ['packages/ops-mcp/src/stdio.ts'],
 });
 const client = new Client({ name: 'blastdoor-e2e', version: '0.1.0' });
 await client.connect(transport);
