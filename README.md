@@ -77,6 +77,30 @@ CONFIDENCE  28/100
 
 The same report renders in the web console, where a human approves or denies it.
 
+### The same rollback, twice
+
+These two screenshots are the whole argument. The action is identical in both —
+`rollback_deploy(payments-svc, dep-4c21)`. Only the evidence behind it changed.
+
+![Blastdoor console refusing a rollback — DO NOT RUN, confidence 28 of 100, no undo path, three services affected](docs/images/decision.png)
+
+**Refused at 28/100.** The agent has two correlational signals and nothing else. Blastdoor
+says so in the words that matter — *"No direct causal evidence — nothing observed actually
+links the change to the symptom"* — and warns that acting now is a guess, and the guess is
+destructive. The reversibility ladder shows `NO UNDO` lit with the three safer rungs dark,
+so the severity is relative rather than asserted.
+
+![The same rollback, now approvable — PROCEED WITH CARE, confidence 91 of 100, corroborated across three tools and two investigators](docs/images/approved.png)
+
+**Approved at 91/100.** The agent went and got the evidence: it wrote code in the **sandbox**
+that replayed the failing request against both deploys — FAIL on `dep-4c21`, PASS on
+`dep-3b90` — and two **subagents** reached the conclusion independently. The blast radius is
+unchanged and it is still irreversible, so it still demands a 1.6-second hold. What moved was
+the confidence, and it moved because of work, not because the agent tried again more firmly.
+
+Note what did *not* change: the blast radius, the undo path, and the requirement for a human.
+Better evidence buys a better-argued request. It never buys the ability to skip the door.
+
 ## Run it
 
 Requires **Node 22.18+** (or 23.6+) — the release where Node strips TypeScript types with no
@@ -227,15 +251,48 @@ as the description the agent wrote — if it can broaden the action between aski
 the human approved something else. Tokens here carry a fingerprint of the approved arguments,
 are single use, and expire after fifteen minutes.
 
-## Where TrueForge does the work
+## The stack — what each piece does, and why
 
-| Harness feature | Where it appears |
+Nothing here is decorative. For each one: what it does in this project, and what would break
+without it.
+
+### TrueForge — the harness
+
+TrueForge is what turns a model into something that can act. Every capability below is on the
+critical path; removing any one of them breaks the product rather than degrading it.
+
+| Capability | What it does here | What breaks without it |
+|---|---|---|
+| **MCP tools** | `ops-mcp` serves **12 tools** — streamable HTTP on `:4300` for the harness, stdio for the e2e suite. TrueForge attaches it as a `remote` connector. | The agent's only route to the estate. There is no back door — remove it and the agent cannot see or touch production at all. |
+| **Sandbox** | The agent writes and runs replay/bisect code against `/api/replay` to test a hypothesis. | It is the **only** way to produce `causal` evidence. Metrics alone cap confidence below the bar an irreversible action must clear, so without the sandbox every dangerous proposal is correctly refused forever. That is the 28 → 91 jump in the screenshots above. |
+| **Human approval** | Every destructive path ends in a proposal. `execute_approved_action` is gated by TrueForge *and* by the broker's token. | The safety property itself. Defence in depth: the harness pauses on the same call the broker would refuse. |
+| **Subagents** | Competing hypotheses are delegated and each finding carries an `investigator`. | Corroboration from independent investigators **raises the score**; a lone investigator carrying the whole case is reported as a gap. Delegation that is not attributed earns nothing. |
+| **Skills** | Two git-backed skills mounted from this repo (`agent/skills/`). | They carry the reasoning discipline — find the origin, classify evidence honestly, treat a rejection as a list of what to observe next. |
+| **Deferred tools** | Read-only tools preload; destructive ones stay deferred. | Investigation starts immediately, and the dangerous surface is not in context until it is actually needed. |
+| **Sessions** | The broker holds proposals independently of the agent loop. | An approval outlives a reconnect. A proposal made before a refresh is still waiting after it. |
+
+Provisioning is **code, not clicks** — [`scripts/provision.ts`](scripts/provision.ts) registers
+the connector, both skills, and the agent against the harness HTTP API, and is idempotent. A
+judge can verify the integration by reading it rather than taking a screenshot's word for it.
+
+### Qodo — the code review
+
+Qodo reviewed every pull request in this repo. It was not a rubber stamp: across three PRs and
+nine rounds it found **17 real bugs**, every one of which was fixed. Several were things no
+test would ever have caught — including a checker that could not run on the very Node version
+it existed to diagnose, and a remediation message of mine that would have led an operator into
+a broken configuration. Full accounting in
+[Qodo Code Review Evidence](#qodo-code-review-evidence) below.
+
+### Everything else, and why it is *not* something bigger
+
+| Choice | Why |
 |---|---|
-| **MCP tools** | `ops-mcp` exposes 12 tools — streamable HTTP for the harness, stdio for the e2e suite. The agent reaches the estate only through them. |
-| **Sandbox** | The agent writes and runs bisect/replay code to turn correlational evidence into causal evidence. Its results feed the confidence score. |
-| **Human approval** | Every destructive path terminates in a proposal. `execute_approved_action` is the only door, and it needs a human-issued token. |
-| **Subagents** | Competing hypotheses are investigated independently; agreement is corroboration, disagreement means it is not time to act. |
-| **Session persistence** | The broker holds proposals independently of the agent loop, so an approval outlives a reconnect. A proposal made before a refresh is still waiting after it. |
+| **Node 22.18+, no build step** | The TypeScript runs directly. A judge clones and runs — no bundler, no `dist/`, no toolchain to install. Zero build was one of the highest-leverage decisions in the project. |
+| **No framework in the console** | Three files and the platform. A React build would have added a toolchain to a UI that needs a graph, a panel, and a button. |
+| **Three.js** | The blast radius *is* a graph, so it renders as one, and failure travels the dependency edges in hop order. Propagation order is the thing a list throws away. |
+| **No database** | The estate and the broker are in-memory and deterministic. The demo reproduces exactly, every run, on any machine. |
+| **Vercel** | Hosts the console as a static build so there is a live URL. It cannot run the estate or broker, so it falls back to a **captured** proposal, labelled `demo — no live broker` with a visibly fake token. A safety tool that quietly presented fabricated state as live would be precisely the wrong thing to ship. |
 
 ## Testing
 
