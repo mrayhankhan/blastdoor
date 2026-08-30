@@ -18,6 +18,7 @@
     "mcp": "npm run start -w @blastdoor/ops-mcp",
     "harness": "node scripts/patch-trueforge.ts && npx -y @truefoundry/trueforge",
     "demo": "node scripts/demo.ts",
+    "preflight": "node scripts/preflight.ts",
     "e2e": "node scripts/e2e.ts",
     "test": "node --test packages/blastdoor-core/test/engine.test.ts",
     "provision": "node scripts/provision.ts",

@@ -85,11 +85,17 @@ Requires **Node 22+**. No Docker, no database, no build step — the TypeScript 
 git clone <this-repo> && cd blastdoor && npm install
 ```
 
+Check the machine first — Node version, dependencies, and the four ports the stack needs:
+
+```bash
+npm run preflight
+```
+
 Three processes, three terminals:
 
 ```bash
 npm run stack      # the production estate           :4000
-npm run mcp        # MCP server + approval broker    :4200 (stdio + HTTP)
+npm run mcp        # MCP server :4300 + approval broker :4200
 npm run console    # the approval console            :4100
 ```
 
@@ -99,10 +105,11 @@ See the approval cards immediately, without the harness or a model:
 npm run demo
 ```
 
-Verify the safety property end to end, driving the real MCP protocol:
+Verify the safety property end to end, driving the real MCP protocol. This one acts on the
+estate, so it needs `npm run stack` up in another terminal:
 
 ```bash
-node scripts/e2e.ts
+npm run e2e
 ```
 
 ```
@@ -147,9 +154,10 @@ read it — which is why this is a script.
 > **Windows:** TrueForge 0.1.4 does not start on Windows —
 > [truefoundry/trueforge#427](https://github.com/truefoundry/trueforge/issues/427). Its
 > migration provider `import()`s a raw `C:\…` path and Node's ESM loader rejects it. The
-> one-line fix is in [`patches/`](patches/); apply it with `npm run patch:trueforge`, or
-> run the whole stack in the bundled devcontainer instead. The local sandbox provider is
-> also macOS/Linux-only, so the sandbox needs either Linux or a Daytona key.
+> one-line fix is in [`scripts/patch-trueforge.ts`](scripts/patch-trueforge.ts); apply it with
+> `npm run patch:trueforge`, or run the whole stack in the bundled devcontainer instead. The
+> local sandbox provider is also macOS/Linux-only, so the sandbox needs either Linux or a
+> Daytona key.
 
 Then inject a fault and give it the alert:
 
@@ -168,7 +176,7 @@ curl -X POST localhost:4000/api/fault/inject \
                     │            TrueForge                 │
                     │  loop · sandbox · subagents · skills │
                     └───────────────┬──────────────────────┘
-                                    │ MCP (stdio)
+                                    │ MCP (HTTP :4300)
                     ┌───────────────▼──────────────────────┐
                     │             ops-mcp                  │
                     │                                      │
@@ -222,7 +230,7 @@ are single use, and expire after fifteen minutes.
 
 | Harness feature | Where it appears |
 |---|---|
-| **MCP tools** | `ops-mcp` exposes 11 tools over stdio. The agent reaches the estate only through them. |
+| **MCP tools** | `ops-mcp` exposes 12 tools — streamable HTTP for the harness, stdio for the e2e suite. The agent reaches the estate only through them. |
 | **Sandbox** | The agent writes and runs bisect/replay code to turn correlational evidence into causal evidence. Its results feed the confidence score. |
 | **Human approval** | Every destructive path terminates in a proposal. `execute_approved_action` is the only door, and it needs a human-issued token. |
 | **Subagents** | Competing hypotheses are investigated independently; agreement is corroboration, disagreement means it is not time to act. |
@@ -231,8 +239,8 @@ are single use, and expire after fifteen minutes.
 ## Testing
 
 ```bash
-node --test packages/blastdoor-core/test/engine.test.ts   # 9 unit tests
-node scripts/e2e.ts                                        # 9 end-to-end assertions
+npm test         # 12 unit tests on the engine
+npm run e2e      # 9 end-to-end assertions (needs `npm run stack` running)
 ```
 
 The unit tests cover attenuation through graceful degradation, migration rollback, change
