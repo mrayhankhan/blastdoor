@@ -25,15 +25,50 @@ const REVERT = process.argv.includes("--revert");
 const HOOK =
   '      import: async (f) => import((await import("node:url")).pathToFileURL(f).href),\n';
 
+/**
+ * Work out where npm's cache actually lives.
+ *
+ * Guessing the two default locations is wrong for anyone who has moved the cache, and on
+ * such a machine the bundle sits somewhere this never looks: the search finds nothing, the
+ * script says "nothing to patch", the harness starts unpatched and still dies on Windows —
+ * and the recovery instructions then send you back to a command looking in the same wrong
+ * places.
+ *
+ * `npm config get cache` is not usable here: npm treats `cache` as a protected option and
+ * refuses to print it. So read the environment override directly, and otherwise ask for the
+ * whole resolved config, which does include it.
+ */
+async function npmCacheRoot(): Promise<string | null> {
+  if (process.env.npm_config_cache) return process.env.npm_config_cache;
+
+  const { execFile } = await import("node:child_process");
+  const { promisify } = await import("node:util");
+  try {
+    const { stdout } = await promisify(execFile)("npm", ["config", "ls", "--json"], {
+      shell: process.platform === "win32",
+    });
+    const cache = JSON.parse(stdout)?.cache;
+    return typeof cache === "string" && cache ? cache : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Find every copy of the bundle npx may have cached. */
 async function findBundles(): Promise<string[]> {
+  const configured = await npmCacheRoot();
+
   const roots = [
+    // What npm itself reports, first — that is the one that is actually right.
+    ...(configured ? [join(configured, "_npx")] : []),
     join(homedir(), "AppData", "Local", "npm-cache", "_npx"),
     join(homedir(), ".npm", "_npx"),
   ];
 
   const found: string[] = [];
-  for (const root of roots) {
+  // The configured cache is usually one of the defaults, so the same directory can appear
+  // twice; dedupe so one bundle is not found and patched once per alias.
+  for (const root of [...new Set(roots)]) {
     let entries: string[];
     try {
       entries = await readdir(root);
