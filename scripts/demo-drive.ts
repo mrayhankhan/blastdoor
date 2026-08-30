@@ -2,16 +2,22 @@
  * Drive the demo end to end, paced for recording.
  *
  * Live demos fail on camera when they depend on typing accurately under pressure. This
- * runs the whole story on a timer against the real MCP server and the real broker, so the
- * only thing left to do while recording is watch the console and narrate.
+ * runs the whole story against the real MCP server and the real broker, so the only thing
+ * left to do while recording is narrate and press Enter.
+ *
+ * Scenes advance on a keypress rather than a timer. Narration never runs to the second,
+ * and a timed driver races ahead — showing the sandbox result while the voiceover is still
+ * on the rejection card. The presenter sets the pace; the terminal follows.
  *
  *   npm run stack        # terminal 1
  *   npm run mcp          # terminal 2
  *   npm run console      # terminal 3, then open http://localhost:4100
  *   node scripts/demo-drive.ts
  *
- * Pass --fast to skip the pauses when rehearsing.
+ * Pass --fast to run straight through when rehearsing.
  */
+import { createInterface } from 'node:readline/promises';
+
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 
@@ -19,7 +25,20 @@ const STACK = process.env.TARGET_STACK_URL ?? 'http://localhost:4000';
 const MCP = process.env.OPS_MCP_URL ?? 'http://localhost:4300/mcp';
 const FAST = process.argv.includes('--fast');
 
-const beat = (ms: number) => new Promise((r) => setTimeout(r, FAST ? 120 : ms));
+const rl = createInterface({ input: process.stdin, output: process.stdout });
+
+/**
+ * Wait for the presenter before revealing the next scene.
+ *
+ * This used to be a timer, which was wrong: narration never runs to the second, so the
+ * terminal would race ahead and show scene 3's output while the voiceover was still on
+ * scene 2. Advancing on a keypress means the on-screen timeline cannot drift from what is
+ * being said, however long a sentence takes.
+ */
+async function cue(prompt = 'press Enter to continue'): Promise<void> {
+  if (FAST) return;
+  await rl.question(`\n    [ ${prompt} ]`);
+}
 
 function say(line: string): void {
   console.log(`\n${line}`);
@@ -44,7 +63,7 @@ await fetch(`${STACK}/api/fault/inject`, {
   headers: { 'content-type': 'application/json' },
   body: JSON.stringify({ faultId: 'payment-timeout' }),
 });
-await beat(2500);
+await cue();
 
 const metrics = parse(await client.callTool({ name: 'get_metrics', arguments: {} }));
 console.table(
@@ -53,7 +72,7 @@ console.table(
     .map((m: any) => ({ service: m.service, errorRate: `${m.errorRatePct}%`, p99: `${m.p99LatencyMs}ms` })),
 );
 say('    The gradient points back to payments-svc. Checkout and the gateway are downstream.');
-await beat(5000);
+await cue('Enter when you have introduced the incident');
 
 // ── Scene 2: the obvious rollback, refused ─────────────────────────────────────
 say('[2/5] The agent proposes the obvious rollback, on timing evidence alone.');
@@ -86,7 +105,7 @@ const bad = parse(
 console.log(`\n    verdict: ${bad.recommendation.toUpperCase()}`);
 console.log(`    ${bad.headline}`);
 say('    >>> Look at the console. It is not executed, and it never will be on this evidence.');
-await beat(11000);
+await cue('Enter AFTER you have walked the rejection card');
 
 // ── Scene 3: the sandbox turns correlation into cause ──────────────────────────
 //
@@ -111,7 +130,7 @@ const baseline = await (
 console.log(`    dep-4c21 (suspect)     -> ${suspect.outcome.toUpperCase()}`);
 console.log(`    dep-3b90 (predecessor) -> ${baseline.outcome.toUpperCase()}`);
 say('    Fail then pass. That is causal evidence, and no amount of metric-reading gets you there.');
-await beat(6000);
+await cue('Enter when you have called out fail-then-pass');
 
 // ── Scene 4: the same action, now with proof — and still irreversible ──────────
 say('[4/5] Re-proposing the SAME rollback, now backed by the replay.');
@@ -155,10 +174,7 @@ console.log(`\n    >>> Hold to approve in the console, then paste the token here
 console.log(`    proposal: ${good.proposalId}`);
 
 // ── Scene 5: wait for the human, then execute ──────────────────────────────────
-const token = await new Promise<string>((resolve) => {
-  process.stdin.setEncoding('utf8');
-  process.stdin.on('data', (d) => resolve(String(d).trim()));
-});
+const token = (await rl.question('\n    token: ')).trim();
 
 say('[5/5] Executing with the human-issued token.');
 const executed = parse(
@@ -169,10 +185,11 @@ const executed = parse(
 );
 console.log(`    ${executed.ok ? 'EXECUTED' : 'REFUSED'} — ${executed.result ?? executed.error}`);
 
-await beat(2000);
+await new Promise((r) => setTimeout(r, 1500));
 const after = await (await fetch(`${STACK}/api/metrics?service=checkout-api`)).json();
 console.log(`    checkout-api error rate is now ${after.metrics[0].errorRatePct}%`);
 say('Done.');
 
+rl.close();
 await client.close();
 process.exit(0);
