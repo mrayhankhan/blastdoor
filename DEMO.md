@@ -11,15 +11,22 @@ needs and the terminal will wait. The driver prints what it is waiting for, e.g.
 
 ## Setup before recording
 
-Four terminals plus a browser. Get all of this running and green *before* you hit record.
+Four terminals plus a browser. Get all of this running and green _before_ you hit record.
 
 ```bash
 npm run stack        # 1 — the estate            :4000
 npm run mcp          # 2 — MCP + broker          :4300 / :4200
 npm run console      # 3 — the console           :4100
-npm run harness      # 4 — TrueForge             :8790   (auto-patches on Windows)
+npm run harness      # 4 — TrueForge             :8790   (Windows: see note below)
 npm run provision    #     once, after adding a model key
 ```
+
+> **On Windows, the harness takes two runs the first time.** `npm run harness` patches the
+> cached TrueForge bundle and then starts it — but on a machine that has never run it, there
+> is no bundle to patch yet, so the first run downloads it and dies on
+> [#427](https://github.com/truefoundry/trueforge/issues/427). Then `npm run patch:trueforge`
+> has something to work on, and `npm run harness` starts normally from there. Do this before
+> you record, not on camera.
 
 Open **http://localhost:4100** and put it beside the terminal you will run the driver in.
 Record at 1920×1080. Hide bookmarks and notifications.
@@ -64,7 +71,7 @@ Drag the graph once so the judge sees it is live 3D, not a picture.
 
 Point at, in this order — **do not rush this, it is the whole project**:
 
-1. **`DO NOT RUN`** and *irreversible*.
+1. **`DO NOT RUN`** and _irreversible_.
 2. **Undo: none.** "This deploy carried a schema migration. Rolling the code back leaves old
    code against a new schema. There is no way back."
 3. **Blast radius** — watch the wave travel outward. "Payments, then checkout, then the
@@ -98,7 +105,7 @@ dep-3b90 (predecessor) -> PASS
 > "Same rollback. Same target. Confidence is now 91, because two independent investigators
 > agree and the replay is causal — Blastdoor scores corroboration, not confidence."
 
-> "But it is *still irreversible*. The migration has not gone away. So the verdict is
+> "But it is _still irreversible_. The migration has not gone away. So the verdict is
 > 'proceed with care', not 'safe'."
 
 ### 2:20–2:45 · Hold to confirm

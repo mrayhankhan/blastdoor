@@ -46,7 +46,8 @@ Two Windows-specific problems **disappear on macOS**, and one script becomes a n
 
 ## Bring the stack up (macOS)
 
-Requires **Node 22+**. TypeScript runs directly — there is no build step anywhere.
+Requires **Node 22.18+** (or 23.6+), where flagless TypeScript type stripping is the default.
+TypeScript runs directly — there is no build step anywhere.
 
 ```bash
 git clone https://github.com/mrayhankhan/blastdoor && cd blastdoor && npm install
@@ -153,7 +154,7 @@ The arc is one incident throughout:
 
 ## Working on this codebase
 
-- TypeScript runs directly under Node 22+. Do not add a build step; the zero-build property
+- TypeScript runs directly under Node 22.18+. Do not add a build step; the zero-build property
   is deliberate so a judge can clone and run.
 - The engine (`packages/blastdoor-core`) is pure and has no I/O. Keep it that way — it is
   the only part that is exhaustively unit-tested.
