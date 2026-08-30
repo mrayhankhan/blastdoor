@@ -264,7 +264,7 @@ critical path; removing any one of them breaks the product rather than degrading
 | Capability | What it does here | What breaks without it |
 |---|---|---|
 | **MCP tools** | `ops-mcp` serves **12 tools** — streamable HTTP on `:4300` for the harness, stdio for the e2e suite. TrueForge attaches it as a `remote` connector. | The agent's only route to the estate. There is no back door — remove it and the agent cannot see or touch production at all. |
-| **Sandbox** | The agent writes and runs replay/bisect code against `/api/replay` to test a hypothesis. | It is the **only** way to produce `causal` evidence. Metrics alone cap confidence below the bar an irreversible action must clear, so without the sandbox every dangerous proposal is correctly refused forever. That is the 28 → 91 jump in the screenshots above. |
+| **Sandbox** | The agent writes and runs replay/bisect code against `/api/replay` to test a hypothesis, and reports the result as `causal` evidence. | It is how the agent *gets* evidence strong enough to clear the bar for an irreversible action. Metrics alone are correlational and cap confidence well below that bar — the 28 → 91 jump in the screenshots is a sandbox replay, and nothing else moves the number that far. See the note below on what this does and does not enforce. |
 | **Human approval** | Every destructive path ends in a proposal. `execute_approved_action` is gated by TrueForge *and* by the broker's token. | The safety property itself. Defence in depth: the harness pauses on the same call the broker would refuse. |
 | **Subagents** | Competing hypotheses are delegated and each finding carries an `investigator`. | Corroboration from independent investigators **raises the score**; a lone investigator carrying the whole case is reported as a gap. Delegation that is not attributed earns nothing. |
 | **Skills** | Two git-backed skills mounted from this repo (`agent/skills/`). | They carry the reasoning discipline — find the origin, classify evidence honestly, treat a rejection as a list of what to observe next. |
@@ -274,6 +274,18 @@ critical path; removing any one of them breaks the product rather than degrading
 Provisioning is **code, not clicks** — [`scripts/provision.ts`](scripts/provision.ts) registers
 the connector, both skills, and the agent against the harness HTTP API, and is idempotent. A
 judge can verify the integration by reading it rather than taking a screenshot's word for it.
+
+> **What the confidence score is, and is not.** Evidence strength is *self-reported*: the
+> agent labels each item `causal`, `correlational` or `circumstantial`, and the engine scores
+> the labels. It does not verify that a replay actually ran. So the score is an advisory
+> reading for the human, not an enforced property — an agent that mislabels its evidence gets
+> a higher number than it deserves.
+>
+> That is a different thing from the safety property, which *is* enforced and *is* tested:
+> nothing reaches production without a token a human issued out of band, bound to the exact
+> arguments they approved. A wrong confidence score produces a badly-argued request. It never
+> produces an execution. Verifying replay provenance end to end is the obvious next step and
+> is listed in [`NOTES.md`](NOTES.md).
 
 ### Qodo — the code review
 
@@ -288,7 +300,7 @@ a broken configuration. Full accounting in
 
 | Choice | Why |
 |---|---|
-| **Node 22.18+, no build step** | The TypeScript runs directly. A judge clones and runs — no bundler, no `dist/`, no toolchain to install. Zero build was one of the highest-leverage decisions in the project. |
+| **Node 22.18+, no build step to run it** | The TypeScript runs directly. A judge clones and runs — no bundler, no `dist/`, no toolchain to install. (The *deployment* does build: [`scripts/build-static.ts`](scripts/build-static.ts) assembles the static console for Vercel. Nothing you run locally needs it.) |
 | **No framework in the console** | Three files and the platform. A React build would have added a toolchain to a UI that needs a graph, a panel, and a button. |
 | **Three.js** | The blast radius *is* a graph, so it renders as one, and failure travels the dependency edges in hop order. Propagation order is the thing a list throws away. |
 | **No database** | The estate and the broker are in-memory and deterministic. The demo reproduces exactly, every run, on any machine. |
