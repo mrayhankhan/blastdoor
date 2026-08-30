@@ -146,7 +146,7 @@ const ports = [
     name: 'target-stack',
     probe: '/api/topology',
     marker: '"dependsOn"',
-    wiring: { env: 'TARGET_STACK_URL', url: (p) => `http://localhost:${p}`, used: 'ops-mcp and the e2e suite' },
+    wiring: { env: 'TARGET_STACK_URL', url: (p) => `http://localhost:${p}`, path: '/', used: 'ops-mcp and the e2e suite' },
   },
   {
     env: 'CONSOLE_PORT',
@@ -174,7 +174,7 @@ const ports = [
     name: 'ops-mcp',
     probe: '/health',
     marker: '"targetStack"',
-    wiring: { env: 'OPS_MCP_URL', url: (p) => `http://localhost:${p}/mcp`, used: 'provisioning and the demo driver' },
+    wiring: { env: 'OPS_MCP_URL', url: (p) => `http://localhost:${p}/mcp`, path: '/mcp', used: 'provisioning and the demo driver' },
   },
 ];
 
@@ -264,24 +264,35 @@ for (const { env, fallback, name, port, wiring } of resolved) {
   // Compare the port the dependent will actually dial, not the exact string. A stack wired
   // with http://127.0.0.1:4001 is correct, and rejecting it for not matching the localhost
   // spelling would fail a working configuration.
+  // The port is what a dependent dials, but not all of what it needs: ops-mcp is only
+  // reachable at /mcp, so a URL on the right port and the wrong path is still broken.
+  // Compare both, and keep host spelling out of it.
   let points = null;
+  let path = null;
   if (actual) {
     try {
       const u = new URL(actual);
       points = u.port || (u.protocol === 'https:' ? '443' : '80');
+      path = u.pathname.replace(/\/$/, '') || '/';
     } catch {
       points = null;
     }
   }
 
+  const wantPath = wiring.path.replace(/\/$/, '') || '/';
+  const portOk = points === String(port);
+  const pathOk = path === wantPath;
+
   record(
-    points === String(port)
+    portOk && pathOk
       ? { ok: true, label: `${wiring.env} follows ${env}` }
       : {
           ok: false,
-          label: actual
-            ? `${wiring.env} points at :${points ?? '?'}, but ${name} is on :${port}`
-            : `${name} moved to :${port} — ${wiring.used} still on :${fallback}`,
+          label: !actual
+            ? `${name} moved to :${port} — ${wiring.used} still on :${fallback}`
+            : !portOk
+              ? `${wiring.env} points at :${points ?? '?'}, but ${name} is on :${port}`
+              : `${wiring.env} points at ${path}, but ${name} serves ${wantPath}`,
           detail: `Set ${wiring.env}=${expected}`,
         },
   );
