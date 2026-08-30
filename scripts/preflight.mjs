@@ -188,6 +188,10 @@ const resolved = ports.map((spec) => ({
 
 const seen = new Map();
 for (const { port, env, name } of resolved) {
+  // Only real ports can collide. Malformed settings all coerce to NaN, and a Map treats
+  // every NaN key as the same key — so two unrelated typos would otherwise be reported as
+  // sharing ":NaN", on top of the invalid-port failure each one already earns below.
+  if (!Number.isInteger(port) || port < 1 || port > 65535) continue;
   const prior = seen.get(port);
   if (prior) {
     record({
@@ -256,12 +260,28 @@ for (const { env, fallback, name, port, wiring } of resolved) {
 
   const expected = wiring.url(port);
   const actual = process.env[wiring.env];
+
+  // Compare the port the dependent will actually dial, not the exact string. A stack wired
+  // with http://127.0.0.1:4001 is correct, and rejecting it for not matching the localhost
+  // spelling would fail a working configuration.
+  let points = null;
+  if (actual) {
+    try {
+      const u = new URL(actual);
+      points = u.port || (u.protocol === 'https:' ? '443' : '80');
+    } catch {
+      points = null;
+    }
+  }
+
   record(
-    actual === expected
+    points === String(port)
       ? { ok: true, label: `${wiring.env} follows ${env}` }
       : {
           ok: false,
-          label: `${name} moved to :${port} — ${wiring.used} still on :${fallback}`,
+          label: actual
+            ? `${wiring.env} points at :${points ?? '?'}, but ${name} is on :${port}`
+            : `${name} moved to :${port} — ${wiring.used} still on :${fallback}`,
           detail: `Set ${wiring.env}=${expected}`,
         },
   );
