@@ -87,7 +87,10 @@ function probeBind(port) {
   return new Promise((resolve) => {
     // A port that is not a usable number never reaches the socket layer — `listen` throws
     // synchronously — so it is checked here rather than caught as an error event.
-    if (!Number.isInteger(port) || port < 0 || port > 65535) {
+    // Port 0 is rejected rather than treated as valid: it tells Node to pick an ephemeral
+    // port, so the service comes up somewhere nothing else can find it. Binding it would
+    // succeed and report ":0 free", which is true and useless.
+    if (!Number.isInteger(port) || port < 1 || port > 65535) {
       resolve({ state: 'invalid' });
       return;
     }
@@ -143,6 +146,7 @@ const ports = [
     name: 'target-stack',
     probe: '/api/topology',
     marker: '"dependsOn"',
+    wiring: { env: 'TARGET_STACK_URL', url: (p) => `http://localhost:${p}`, used: 'ops-mcp and the e2e suite' },
   },
   {
     env: 'CONSOLE_PORT',
@@ -157,6 +161,9 @@ const ports = [
     name: 'broker',
     probe: '/api/proposals',
     marker: '"proposals"',
+    // The console resolves the broker in the browser, not from the environment, so there is
+    // no variable preflight can check — only a warning it can raise.
+    wiring: { browser: 'window.BLASTDOOR_BROKER', used: 'the console' },
   },
   // `npm run mcp` serves MCP here and brings the broker up on 4200 alongside it. Probe
   // /health rather than /mcp: the MCP endpoint answers a bare GET with 406 (it wants an
@@ -167,11 +174,33 @@ const ports = [
     name: 'ops-mcp',
     probe: '/health',
     marker: '"targetStack"',
+    wiring: { env: 'OPS_MCP_URL', url: (p) => `http://localhost:${p}/mcp`, used: 'provisioning and the demo driver' },
   },
 ];
 
-for (const { env, fallback, name, probe, marker } of ports) {
-  const port = Number(process.env[env] ?? fallback);
+// Resolve every port first. Two services pointed at the same port each probe it, find it
+// free, release it, and both pass — then the second one to actually start dies on
+// EADDRINUSE. Probing in isolation cannot see that, so it is checked across the set.
+const resolved = ports.map((spec) => ({
+  ...spec,
+  port: Number(process.env[spec.env] ?? spec.fallback),
+}));
+
+const seen = new Map();
+for (const { port, env, name } of resolved) {
+  const prior = seen.get(port);
+  if (prior) {
+    record({
+      ok: false,
+      label: `:${port} is assigned to both ${prior.name} and ${name}`,
+      detail: `They cannot share it. Change ${env} or ${prior.env}.`,
+    });
+  } else {
+    seen.set(port, { env, name });
+  }
+}
+
+for (const { env, fallback, name, probe, marker, port } of resolved) {
   const configured = port !== fallback ? ` [${env}]` : '';
   const bind = await probeBind(port);
 
@@ -184,7 +213,7 @@ for (const { env, fallback, name, probe, marker } of ports) {
     record({
       ok: false,
       label: `${env} is not a usable port number (${name})`,
-      detail: `Got ${process.env[env]}. Set ${env} to a whole number between 0 and 65535.`,
+      detail: `Got ${process.env[env]}. Set ${env} to a whole number between 1 and 65535.`,
     });
     continue;
   }
@@ -205,6 +234,35 @@ for (const { env, fallback, name, probe, marker } of ports) {
           ok: false,
           label: `:${port} taken by something else (${name} needs it)${configured}`,
           detail: `Stop it, or set ${env} to a free port.`,
+        },
+  );
+}
+
+// 4 — Wiring. Moving a service is only half the job: its dependents resolve it from a
+// separate variable that still points at the old default. Without this, taking the advice
+// above ("set X to a free port") produces a preflight that passes and a stack that cannot
+// talk to itself.
+for (const { env, fallback, name, port, wiring } of resolved) {
+  if (!wiring || port === fallback) continue;
+
+  if (wiring.browser) {
+    record({
+      ok: false,
+      label: `${name} moved to :${port} — ${wiring.used} still on :${fallback}`,
+      detail: `${wiring.browser} is resolved in the browser, so it cannot be set from the environment. Serve the console with it set, or leave ${env} alone.`,
+    });
+    continue;
+  }
+
+  const expected = wiring.url(port);
+  const actual = process.env[wiring.env];
+  record(
+    actual === expected
+      ? { ok: true, label: `${wiring.env} follows ${env}` }
+      : {
+          ok: false,
+          label: `${name} moved to :${port} — ${wiring.used} still on :${fallback}`,
+          detail: `Set ${wiring.env}=${expected}`,
         },
   );
 }
