@@ -249,6 +249,51 @@ freezes, last-replica restarts, and the treatment of unmodelled tools as irrever
 than assumed safe. The e2e suite drives the real MCP protocol and asserts the safety property
 directly, including token cross-redemption and replay.
 
+## Qodo Code Review Evidence
+
+[Qodo](https://qodo.ai) reviewed the pull requests in this repo. Both are merged.
+
+To be straight about the history: the first ten commits — the engine, the MCP server and
+broker, the console, the TrueForge integration — landed directly on `main` before Qodo was
+connected. Everything after that went through a reviewed PR, and the reviews were not a
+formality:
+
+| PR | What it carried | Qodo outcome |
+|---|---|---|
+| [#2](https://github.com/mrayhankhan/blastdoor/pull/2) | `npm run preflight`, and corrections to three wrong facts in this README | **14 findings** over four rounds → final review clean |
+| [#1](https://github.com/mrayhankhan/blastdoor/pull/1) | Submission write-up, demo shot list, build retrospective, e2e robustness | **3 findings** over three rounds → final review clean |
+
+Seventeen findings in total, and both PRs finished at **🐞 Bugs (0) · 📘 Rule violations (0)**.
+Every finding was real and every one was fixed — none were dismissed as incorrect. (One of the
+fourteen restated an issue already fixed in a push the review had not yet picked up.)
+The full round-by-round exchange — findings, fixes, and the verification for each — is in
+the PR threads.
+
+Three worth reading, because they were caught by review rather than by tests:
+
+**A checker that could never run.** `preflight` exists to tell you your Node is too old to
+run this repo's TypeScript — and it was written *in* TypeScript, so on exactly the Node it
+was meant to diagnose it died while loading, with the same opaque syntax error it existed
+to explain. It is plain `.mjs` now. ([#2](https://github.com/mrayhankhan/blastdoor/pull/2))
+
+**The Windows patch could never bootstrap.** `npm run harness` is
+`patch && npx trueforge`. On a machine that had never run it there was no cached bundle, so
+the patch exited non-zero, the `&&` short-circuited, and npx never downloaded the thing the
+patch needed — while the error told you to run `npm run harness`, the command it had just
+killed. A Windows judge would have hit a dead end with no way out.
+([#1](https://github.com/mrayhankhan/blastdoor/pull/1))
+
+**My own remediation advice was wrong.** When preflight found an occupied port it said "set
+`TARGET_STACK_PORT` to a free port" — but ops-mcp resolves the estate from a separate
+`TARGET_STACK_URL` that still pointed at the old one. Following the instruction produced a
+passing preflight and a stack that could not reach itself. It now checks that the dependent
+variable followed, and prints the exact assignment to make.
+([#2](https://github.com/mrayhankhan/blastdoor/pull/2))
+
+Two later rounds caught the *corrections* rather than the original code: comparing whole URL
+strings rejected a correctly-wired `http://127.0.0.1:4001`, and fixing that by comparing only
+the port then let a wrong path through. Both are in the thread.
+
 ## Disclosure
 
 Built during the WeMakeDevs Agent Harness Hackathon, August 2026.
