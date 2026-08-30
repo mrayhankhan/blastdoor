@@ -19,7 +19,10 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 // exactly what the README tells you to do — so the suite runs on its own ports and can
 // coexist with a live stack. It deliberately shares the target stack, because asserting
 // that the symptom actually clears means acting on the real one.
-const BROKER_PORT = process.env.E2E_BROKER_PORT ?? '4210';
+// Same knob name the broker's own port-clash message tells you to set, so following that
+// advice actually works. Only the default differs from the broker's, to stay clear of a
+// `npm run mcp` on 4200.
+const BROKER_PORT = process.env.BROKER_PORT ?? '4210';
 const BROKER = `http://localhost:${BROKER_PORT}`;
 const STACK = process.env.TARGET_STACK_URL ?? 'http://localhost:4000';
 

@@ -1,8 +1,13 @@
 # Demo script
 
-Three minutes, one incident, every harness feature on the critical path. The whole thing is
-driven by `scripts/demo-drive.ts` on a timer, so the only live skill required is narrating
-and holding one button.
+Three minutes, one incident, every harness feature on the critical path.
+`scripts/demo-drive.ts` runs it against the real MCP server and broker, so the only live
+skills required are narrating and holding one button.
+
+**Scenes advance when you press Enter**, not on a timer. The times below are the target
+shape of the edit, not a countdown you have to keep up with — take as long as each line
+needs and the terminal will wait. The driver prints what it is waiting for, e.g.
+`[ Enter AFTER you have walked the rejection card ]`.
 
 ## Setup before recording
 
