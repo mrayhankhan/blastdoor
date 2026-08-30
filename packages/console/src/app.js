@@ -342,7 +342,11 @@ function animateWhenVisible(run) {
 function countUp(node, target, duration) {
   const start = performance.now();
   const step = (now) => {
-    const t = Math.min(1, (now - start) / duration);
+    // Clamped at both ends. Capping at 1 alone assumes the clock only moves forward, and
+    // the easing below is a cubic: one negative t turns the readout into a large negative
+    // number — on this element, a confidence score someone is about to make an irreversible
+    // decision from.
+    const t = Math.max(0, Math.min(1, (now - start) / duration));
     // Same easing as the arc, so the number and the sweep land together.
     const eased = 1 - Math.pow(1 - t, 3);
     node.textContent = String(Math.round(target * eased));

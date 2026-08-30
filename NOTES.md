@@ -54,3 +54,10 @@ able to pick up in five minutes.
 - Session persistence across a harness reconnect needs to be shown in the demo, not just be
   true.
 - Nothing deployed yet; judges reward a live URL over localhost.
+- **Evidence provenance is not verified.** Qodo caught this reading the README: the engine
+  scores the `strength` label the agent supplies and never checks that a sandbox replay
+  actually ran, so a mislabelled `causal` clears the bar. It does not breach the safety
+  property — execution still needs a human-issued token bound to the arguments — but it does
+  mean the confidence number is advisory rather than enforced, and the README now says so.
+  The fix is an append-only replay log on the target stack that `propose_*` checks claimed
+  replay evidence against, downgrading anything unverifiable.
