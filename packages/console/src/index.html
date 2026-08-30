@@ -28,6 +28,25 @@
     </header>
 
     <main id="panel">
+      <!-- Shown only when no broker answers, which on the public deployment is expected.
+           Hidden entirely in a real local run, so it never appears in a live session. -->
+      <aside id="demo-note" class="demo-note" hidden>
+        <p>
+          <strong>This is the read-only shop window.</strong> The full system is four local
+          processes — a production estate, an MCP server, an approval broker, and the
+          TrueForge agent — and static hosting cannot run any of them.
+        </p>
+        <p>
+          So the card below is a <strong>captured</strong> proposal. Every number in it is real
+          output from the real engine, but nothing here executes and the approval token is
+          visibly fake. To see the agent actually get refused and then earn its approval,
+          run it locally or watch the demo.
+        </p>
+        <p class="demo-note-links">
+          <a href="https://github.com/mrayhankhan/blastdoor">Repository and setup →</a>
+        </p>
+      </aside>
+
       <section id="empty" class="empty">
         <div class="empty-ring" aria-hidden="true"></div>
         <h2>Nothing waiting</h2>

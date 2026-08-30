@@ -214,6 +214,32 @@ body[data-live="true"] .brand-mark::after { transform: translateX(62%); }
 #panel::-webkit-scrollbar { width: 8px; }
 #panel::-webkit-scrollbar-thumb { background: var(--line-bright); border-radius: 4px; }
 
+/* Demo-mode explainer. Only rendered on a deployment with no broker behind it, so a
+   visitor who lands cold understands what they are looking at before they judge it. */
+.demo-note {
+  margin: 0 0 18px;
+  padding: 16px 18px;
+  border: 1px solid color-mix(in srgb, var(--warning) 45%, transparent);
+  border-left-width: 3px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--warning) 7%, transparent);
+}
+.demo-note p {
+  margin: 0 0 10px;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text-dim);
+}
+.demo-note p:last-child { margin-bottom: 0; }
+.demo-note strong { color: var(--text); font-weight: 600; }
+.demo-note-links a {
+  color: var(--warning);
+  text-decoration: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--warning) 40%, transparent);
+}
+.demo-note-links a:hover,
+.demo-note-links a:focus-visible { border-bottom-color: var(--warning); }
+
 .empty {
   margin-top: 22vh;
   text-align: center;

@@ -29,6 +29,7 @@ const emptyEl = document.getElementById('empty');
 const connEl = document.getElementById('conn');
 const countEl = document.getElementById('count');
 const tooltipEl = document.getElementById('tooltip');
+const demoNoteEl = document.getElementById('demo-note');
 
 /** Tokens are shown once, client-side, so the operator can hand one to the agent. */
 const issuedTokens = new Map();
@@ -560,6 +561,7 @@ async function refresh() {
     demoMode = false;
     connEl.textContent = 'live';
     connEl.className = 'pill pill-live';
+    if (demoNoteEl) demoNoteEl.hidden = true;
   } catch {
     // No broker reachable. On the public deployment that is expected, so show the
     // captured proposal rather than an empty screen — but never claim it is live.
@@ -567,6 +569,7 @@ async function refresh() {
     proposals = DEMO_PROPOSALS;
     connEl.textContent = 'demo — no live broker';
     connEl.className = 'pill pill-demo';
+    if (demoNoteEl) demoNoteEl.hidden = false;
   }
 
   const pending = proposals.filter((p) => p.status === 'pending').length;
