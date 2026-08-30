@@ -289,11 +289,12 @@ judge can verify the integration by reading it rather than taking a screenshot's
 
 ### Qodo — the code review
 
-Qodo reviewed every pull request in this repo. It was not a rubber stamp: across three PRs and
-nine rounds it found **17 real bugs**, every one of which was fixed. Several were things no
-test would ever have caught — including a checker that could not run on the very Node version
-it existed to diagnose, and a remediation message of mine that would have led an operator into
-a broken configuration. Full accounting in
+Qodo reviewed every pull request in this repo. It was not a rubber stamp: across four PRs it
+found **19 real bugs**, every one of which was fixed. Several were things no
+test would ever have caught — a checker that could not run on the very Node version it existed
+to diagnose, a remediation message of mine that would have led an operator into a broken
+configuration, and an overstatement in this very README about what the confidence score
+enforces. Full accounting in
 [Qodo Code Review Evidence](#qodo-code-review-evidence) below.
 
 ### Everything else, and why it is *not* something bigger
@@ -331,10 +332,12 @@ formality:
 |---|---|---|
 | [#2](https://github.com/mrayhankhan/blastdoor/pull/2) | `npm run preflight`, and corrections to three wrong facts in this README | **14 findings** over four rounds → final review clean |
 | [#1](https://github.com/mrayhankhan/blastdoor/pull/1) | Submission write-up, demo shot list, build retrospective, e2e robustness | **3 findings** over three rounds → final review clean |
+| [#4](https://github.com/mrayhankhan/blastdoor/pull/4) | Console screenshots, and what every piece of the stack is for | **2 findings** → final review clean |
+| [#3](https://github.com/mrayhankhan/blastdoor/pull/3) | This section | clean first time |
 
-Seventeen findings in total, and both PRs finished at **🐞 Bugs (0) · 📘 Rule violations (0)**.
+Nineteen findings in total, and every PR finished at **🐞 Bugs (0) · 📘 Rule violations (0)**.
 Every finding was real and every one was fixed — none were dismissed as incorrect. (One of the
-fourteen restated an issue already fixed in a push the review had not yet picked up.)
+fourteen on #2 restated an issue already fixed in a push the review had not yet picked up.)
 The full round-by-round exchange — findings, fixes, and the verification for each — is in
 the PR threads.
 
