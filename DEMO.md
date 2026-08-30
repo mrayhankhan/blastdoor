@@ -141,7 +141,8 @@ Hold it fully. Token appears. Copy it, paste into the terminal.
 
 ## Recording notes
 
-- Talk over the pauses; the driver is timed to leave room.
+- Talk over the pauses — but they are yours, not the driver's. It waits on Enter and never
+  on a clock, so a line that needs another ten seconds gets them.
 - If a beat runs long, cut the graph drag rather than the rejection card.
 - Do not narrate the architecture. Judges read the README for that; the video is for the
   moment the rollback gets refused.
