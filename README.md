@@ -79,7 +79,8 @@ The same report renders in the web console, where a human approves or denies it.
 
 ## Run it
 
-Requires **Node 22+**. No Docker, no database, no build step — the TypeScript runs directly.
+Requires **Node 22.18+** (or 23.6+) — the release where Node strips TypeScript types with no
+flag, which is how this repo runs with no build step. No Docker, no database, no bundler.
 
 ```bash
 git clone <this-repo> && cd blastdoor && npm install

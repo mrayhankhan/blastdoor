@@ -36,10 +36,11 @@ const record = (c) => {
 console.log('\nBLASTDOOR PREFLIGHT\n');
 
 // 1 — Node. The repo runs TypeScript with no build step, which needs a runtime that strips
-// types natively. Below 22 nothing else in this list matters. 22.6 is where `--experimental-
-// strip-types` landed; the 22.0–22.5 range satisfies '22+' but still cannot load a .ts file.
+// types natively *without a flag* — the scripts are invoked as plain `node scripts/x.ts`.
+// That became the default in 22.18 and 23.6, not at 22.0: the whole 22.0–22.17 range
+// satisfies a documented "Node 22+" and still cannot load a single file in this repo.
 const [major, minor] = process.versions.node.split('.').map(Number);
-const stripsTypes = major > 22 || (major === 22 && minor >= 6);
+const stripsTypes = major > 23 || (major === 23 && minor >= 6) || (major === 22 && minor >= 18);
 record(
   stripsTypes
     ? { ok: true, label: `Node ${process.versions.node}` }
@@ -47,7 +48,7 @@ record(
         ok: false,
         label: `Node ${process.versions.node} cannot run this repo`,
         detail:
-          'Node 22.6+ strips TypeScript types natively, which is how this repo runs with no build step.',
+          'Needs 22.18+ or 23.6+, where Node strips TypeScript types with no flag. That is how this repo runs with no build step.',
       },
 );
 
